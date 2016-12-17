@@ -5,14 +5,25 @@ if isempty(I)
 else 
     show_fig = varargin{I+1};
 end
-%% KL Divergence of Downstream Power
-% The KL divergence D_KL(p||q) = integral_{inf}^{inf} p(x)ln(p(x)/q(x)) dx
-[v,edges] = histcounts(n.pdownstream(n.d_hop >2 & n.pdownstream >0)./sum(n.p),'normalization','pdf');
+
+if ~any(strcmp(fieldnames(n),'fid'))
+    dP = n.pdownstream(n.d_hop >2 & n.pdownstream >0)./sum(n.p);
+else
+    dP = [];
+    for fid = unique(n.fid).'
+        fid_mask = n.fid == fid;
+        pos_dp = n.pdownstream >0;
+        hop2 = n.d_hop >2;
+        norm_factor = sum(n.p(fid_mask & pos_dp & hop2));
+        dP = [dP; n.pdownstream(fid_mask & pos_dp & hop2)./norm_factor]; %#ok<AGROW>
+    end
+end
+[v,edges] = histcounts(dP,'normalization','pdf');
 centers = edges(1:end-1) + 0.5*diff(edges);
 fitx = linspace(edges(1),edges(end),max(length(centers),100));
 fitv = pdf(dP_dist,fitx);
 KL = kld(v,pdf(dP_dist,centers),centers);
-%% Downstream Power Distribution
+
 if show_fig
     loglog(centers,v,'o','MarkerFace','b')
     hold on;

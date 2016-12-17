@@ -6,15 +6,25 @@ else
     show_fig = varargin{I+1};
 end
 
-p_pos_mask = n.p>0;
-N = length(n.id);
-p_pos_dev = (n.p(p_pos_mask)./sum(n.p(p_pos_mask))) - 1/N;
+if ~any(strcmp(fieldnames(n),'fid'))
+    p_pos_mask = n.p>0;
+    N = length(n.id);
+    p_pos_dev = (n.p(p_pos_mask)./sum(n.p(p_pos_mask))) - 1/N;
+else
+    p_pos_dev = [];
+    for fid = unique(n.fid).'
+        fid_mask = n.fid == fid;
+        p_pos_mask = (n.p > 0) & fid_mask;
+        N = sum(fid_mask);
+        p_pos_dev = [p_pos_dev; (n.p(p_pos_mask)./sum(n.p(p_pos_mask))) - 1/N]; %#ok<AGROW>
+    end
+end
 if show_fig
     h = histogram(p_pos_dev,'normalization','pdf');
     v = h.Values;
     edges = h.BinEdges;
     centers = edges(1:end-1) + 0.5*diff(edges);
-    fitx = linspace(edges(1),edges(end));
+    fitx = linspace(edges(1),edges(end),max(length(v),100));
     fitv = pdf(Pload_dist,fitx);
     hold on;
     % plot(h.BinEdges(1:end-1) + 0.5*diff(h.BinEdges),...

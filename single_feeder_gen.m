@@ -3,11 +3,8 @@ function [n,e] = single_feeder_gen(N,Stotal,Pinj_total)
 %   N: number of nodes
 %   Stotal: total MVA consumption
 %   Pinj_total: total MW injection
-% clear variables; close all;
+
 %% Additional Inputs
-% N = 195;
-% Stotal = 23;    %[MVA]
-% Pinj_total = 3; %[MW]
 U_hv = 110;     %[kV]
 U_mv = 10;      %[kV]
 % max_overload = 1.5; %maximum allowable overload for a cable
@@ -371,55 +368,3 @@ end
 %         e.x(k) = e.length(k)*cable_types.(['u' num2str(e.funom(k))]).x(e.cable_id(k));
 %     end
 % end
-%% separation between generation and testing code
-
-%%%%%%%%%%%%%%%%%%%%%
-% %% testing
-% %%%%%%%%%%%%%%%%%%%%%
-% G = graph(e.f,e.t,e.inom);%sqrt(e.pdownstream.^2 + e.qdownstream.^2));
-% %% plot feeder
-% feeder_plot(n,e,'G',G)
-% %% stop excecution here
-% T_hist = struct(); %table for exporting data to csv and tikz
-% T_fit = struct();
-% KL = struct();
-% %% hop distance distribution
-% figure;
-% [KL.hop,T_hist.hopv,T_hist.hopcenters,T_hist.hopedges,...
-%     T_fit.hopx,T_fit.hopv] = hop_distance_distribution(n,hop_dist,'fig',1);
-% %% Load Distribution
-% figure;
-% [KL.load,T_hist.pposv,T_hist.pposcenters,T_hist.pposedges,...
-%     T_fit.pposx,T_fit.pposv] = load_distribution(n,Pload_dist,'fig',1);
-% %% degree distribution
-% figure;
-% [KL.deg,T_hist.degv,T_hist.degcenters,Thist.degedges,...
-%     T_fit.degx,T_fit.degv] = degree_distribution(G,deg_dist,'fig',1);
-% %% Downstream Power Distribution
-% figure;
-% [KL.dp,T_hist.dpv,T_hist.dpcenters,T_hist.dpedges,...
-%     T_fit.dpx,T_fit.dpv] = downstream_power_distribution(n,dP_dist,'fig',1);
-% %% i_est/inom Distribution
-% figure;
-% [KL.inom,T_hist.inomv,T_hist.inomcenters,T_hist.inomedges,...
-%     T_fit.inomx,T_fit.inomv] = iest_inom_distribution(e,iest_inom_dist,'fig',1);
-% %% nominal current of coincident edges
-% figure; 
-% nominalcurrent_coincidentedges(n)
-% %% histogram of cable nominal current
-% figure;
-% histogram(e.inom(e.inom>0),'Normalization','probability');
-% xlabel('nominal current [A]')
-% ylabel('probability')
-% %% Voltage Drop* distribution
-% figure;
-% [KL.vdrop,T_hist.vdropv,T_hist.vdropcenters,T_hist.vdropedges,...
-%     T_fit.vdropx,T_fit.vdropv] = voltagedrop_distribution(e,vdrop_dist,'fig',1);
-% %% cable length distribution
-% figure;
-% [KL.length,T_hist.lengthv,T_hist.lengthcenters,T_hist.lengthedges,...
-%     T_fit.lengthx,T_fit.lengthv] = length_distribution(e,length_dist,'fig',1);
-% %% reactance distribution
-% figure;
-% [KL.x,T_hist.xv,T_hist.xcenters,T_hist.xedges,...
-%     T_fit.xx,T_fit.xv] = reactance_distribution(e,'fig',1);
