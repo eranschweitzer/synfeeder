@@ -138,3 +138,49 @@ if show_fig
     ylabel('(Pinj_{actual} - Pinj_{total})/Pinj_{total}')
     set(gca,'FontSize',20)
 end
+%% no load plots
+if any(strcmp(fieldnames(n),'fid'))
+    if length(unique(n.fid)) > 1
+        if show_fig
+            figure;
+        end
+        [KL.noloadfrac,T_hist.noloadfracv,T_hist.noloadfraccenters,...
+            T_hist.noloadfracedges,T_fit.noloadfracx,T_fit.noloadfracv] = ...
+            noload_frac_test(n,noloadfrac_dist,'fig',show_fig);
+        if show_fig
+            figure;
+        end
+        [KL.noloadhop,T_hist.noloadhopv,T_hist.noloadhopcenters,...
+            T_hist.noloadhopedges,T_fit.noloadhopx,T_fit.noloadhopv] = ...
+            noload_hop_test(n,noloadhop_dist,'fig',show_fig);
+    end
+end
+%% Injection Plots
+if any(strcmp(fieldnames(n),'fid'))
+    if length(unique(n.fid)) > 1
+        if show_fig
+            figure;
+        end
+        [KL.pinjfrac,T_hist.pinjfracv,T_hist.pinjfraccenters,...
+            T_hist.pinjfracedges,T_fit.pinjfracx,T_fit.pinjfracv] = ...
+            pinj_frac_test(n,Pinj_dist,'fig',show_fig);
+        if show_fig
+            figure;
+        end
+        [KL.pinjhop,T_hist.pinjhopv,T_hist.pinjhopcenters,...
+            T_hist.pinjhopedges,T_fit.pinjhopx,T_fit.pinjhopv] = ...
+            pinj_hop_test(n,Pinj_dist,'fig',show_fig);
+        if show_fig
+            figure;
+        end
+        [KL.pinjdeg,T_hist.pinjdegv,T_hist.pinjdegcenters,...
+            T_hist.pinjdegedges,T_fit.pinjdegx,T_fit.pinjdegv] = ...
+            pinj_deg_test(n,Pinj_dist,'fig',show_fig);
+        if show_fig
+            figure;
+        end
+        [KL.pinj,T_hist.pinjv,T_hist.pinjcenters,...
+            T_hist.pinjedges,T_fit.pinjx,T_fit.pinjv] = ...
+            Pinj_distribution(n,Pinj_dist,'fig',show_fig);
+    end
+end
