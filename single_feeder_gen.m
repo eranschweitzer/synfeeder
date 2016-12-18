@@ -125,7 +125,7 @@ end
 for k = 2:N
     if ~n.noload(k) && ~(n.p(k)<0) %not marked as no load or has a power injection
        epsilon = random(Pload_dist);
-       while 1/N + epsilon < 0
+       while (1/N + epsilon < 0) || (Ptotal*(1/N + epsilon) > pmax_f(n.d_hop(k)))
            % we are only assigning positive load here
            epsilon = random(Pload_dist);
        end

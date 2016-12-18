@@ -23,10 +23,10 @@ for fid = 1:size(in_vars,1)
         e_tot = table2struct([struct2table(e_tot);struct2table(e)],'ToScalar',true);
     end
 end
-[KL,T_hist,T_fit] = feeder_testing(n_tot,e_tot,'fig',0);
+[KL,T_hist,T_fit] = feeder_testing(n_tot,e_tot,'fig',1);
 
-save('/sine/tmp/eran/radial_feeder_results/input_2_results.mat','n_tot','e_tot','v-7.3')
+% save('/sine/tmp/eran/radial_feeder_results/input_2_results.mat','n_tot','e_tot','v-7.3')
 %%
-writetable(struct2tab_with_pad(KL),'~/Dropbox/ASU/SINE/Data/feeder_analysis/input_2_KL.csv');
-writetable(struct2tab_with_pad(T_hist),'~/Dropbox/ASU/SINE/Data/feeder_analysis/input_2_T_hist.csv');
-writetable(struct2tab_with_pad(T_fit),'~/Dropbox/ASU/SINE/Data/feeder_analysis/input_2_T_fit.csv');
+% writetable(struct2tab_with_pad(KL),'~/Dropbox/ASU/SINE/Data/feeder_analysis/input_2_KL.csv');
+% writetable(struct2tab_with_pad(T_hist),'~/Dropbox/ASU/SINE/Data/feeder_analysis/input_2_T_hist.csv');
+% writetable(struct2tab_with_pad(T_fit),'~/Dropbox/ASU/SINE/Data/feeder_analysis/input_2_T_fit.csv');

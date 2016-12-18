@@ -65,6 +65,11 @@ if show_fig
 end
 [KL.load,T_hist.pposv,T_hist.pposcenters,T_hist.pposedges,...
     T_fit.pposx,T_fit.pposv] = load_distribution(n,Pload_dist,'fig',show_fig);
+%% Maximum Load at hop (ok for multifeeder)
+if show_fig
+    figure;
+    maxp_at_hop_plot(n,pmax_f)
+end
 %% degree distribution (ok for multifeeder)
 if show_fig
     figure;

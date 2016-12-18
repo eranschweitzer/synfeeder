@@ -18,6 +18,12 @@ hop_dist = hop_dist.pd;
 Pload_dist = load('Pload_distribution.mat','pd');
 Pload_dist = Pload_dist.pd;
 
+%Coefficients for maximum load function at a given hop level
+%should be used in a function as f(hop) = pmax_coeff(1)*hop^(pmax_coeff(2))
+pmax_coeff = load('pmax_coeff','maxp_dhop');
+pmax_coeff = pmax_coeff.maxp_dhop;
+pmax_f = @(x) pmax_coeff(1)*x.^(pmax_coeff(2)); %convenience function
+
 %Distributions for negative (injection) load
 %includes:
 % - pd_p_neg_frac (Beta): for fraction of power injection nodes

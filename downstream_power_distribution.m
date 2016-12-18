@@ -7,14 +7,15 @@ else
 end
 
 if ~any(strcmp(fieldnames(n),'fid'))
-    dP = n.pdownstream(n.d_hop >2 & n.pdownstream >0)./sum(n.p);
+    dP = n.pdownstream(n.d_hop >2 & n.pdownstream >0)./sum(n.p(n.p > 0));
 else
     dP = [];
     for fid = unique(n.fid).'
         fid_mask = n.fid == fid;
         pos_dp = n.pdownstream >0;
         hop2 = n.d_hop >2;
-        norm_factor = sum(n.p(fid_mask & pos_dp & hop2));
+        p_pos = n.p > 0;
+        norm_factor = sum(n.p(fid_mask & p_pos));
         dP = [dP; n.pdownstream(fid_mask & pos_dp & hop2)./norm_factor]; %#ok<AGROW>
     end
 end
