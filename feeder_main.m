@@ -7,7 +7,7 @@ clear variables; close all;
 in_vars = readtable('input_2.csv');
 %% Generate and test
 
-for fid = 1:size(in_vars,1)
+for fid = 1:100;%size(in_vars,1)
     N = in_vars.n(fid);
     Stotal = in_vars.mva(fid);
     Pinj_total = in_vars.pinj(fid);

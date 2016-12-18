@@ -24,7 +24,7 @@ n = struct('id',(1:N).','p',zeros(N,1),'q',zeros(N,1),'pf',zeros(N,1),...
 e = struct('id',(1:N-1).','f',zeros(N-1,1),'t',zeros(N-1,1),...
             'funom',zeros(N-1,1),'tunom',zeros(N-1,1),'d_hop',zeros(N-1,1),...
             'pdownstream',zeros(N-1,1),'qdownstream',zeros(N-1,1),...
-            'i_est',zeros(N-1,1),'inom',-1*ones(N-1,1),'overload',false(N-1,1),...
+            'i_est',zeros(N-1,1),'inom',-1*ones(N-1,1),'rsamp',zeros(N-1,1),'overload',false(N-1,1),...
             'num_parallel',ones(N-1,1),'cable_id',zeros(N-1,1),...
             'length',zeros(N-1,1),'r',zeros(N-1,1),'x',zeros(N-1,1));
 
@@ -275,11 +275,12 @@ for k = length(e.inom):-1:1 %moves from far out towards the source
 %                end
                
                inom_diff = abs(inom_options - inom_tmp);
-               %weight by cable distribution
-               inom_diff = inom_diff./...
-                   (cable_types.(['u' num2str(e.funom(k))]).count*ones(1,size(inom_diff,2)));
                iest_diff = inom_options - e.i_est(k);
                if r_tmp <= 1
+                   %weight by cable distribution 
+                   %only for under loaded cables
+                   inom_diff = inom_diff./...
+                   (cable_types.(['u' num2str(e.funom(k))]).count*ones(1,size(inom_diff,2)));
                    inom_diff(iest_diff<0) = inf;
                else
                    inom_diff(iest_diff > 0) = inf;
@@ -302,6 +303,7 @@ for k = length(e.inom):-1:1 %moves from far out towards the source
        e.cable_id(k) = I;
        e.num_parallel(k) = npar;
        e.overload(k) = r_tmp > 1;
+       e.rsamp(k) = r_tmp;
        
        %update node properties
        n.inom_min(e.f(k)) = min([n.inom_min(e.f(k)) e.inom(k)]);
