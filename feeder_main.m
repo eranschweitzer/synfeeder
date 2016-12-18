@@ -7,7 +7,7 @@ clear variables; close all;
 in_vars = readtable('input_2.csv');
 %% Generate and test
 
-for fid = 1;%size(in_vars,1)
+for fid = 1:size(in_vars,1)
     N = in_vars.n(fid);
     Stotal = in_vars.mva(fid);
     Pinj_total = in_vars.pinj(fid);
@@ -26,10 +26,10 @@ for fid = 1;%size(in_vars,1)
         err_tot = table2struct([struct2table(err_tot);struct2table(err)],'ToScalar',true);
     end
 end
-[KL,T_hist,T_fit] = feeder_testing(n_tot,e_tot,'fig',1);
-
-% save('/sine/tmp/eran/radial_feeder_results/input_2_results.mat','n_tot','e_tot','v-7.3')
-%%
-% writetable(struct2tab_with_pad(KL),'~/Dropbox/ASU/SINE/Data/feeder_analysis/input_2_KL.csv');
-% writetable(struct2tab_with_pad(T_hist),'~/Dropbox/ASU/SINE/Data/feeder_analysis/input_2_T_hist.csv');
-% writetable(struct2tab_with_pad(T_fit),'~/Dropbox/ASU/SINE/Data/feeder_analysis/input_2_T_fit.csv');
+[KL,T_hist,T_fit] = feeder_testing(n_tot,e_tot,err_tot,'fig',1);
+%% save structures
+save('~/Dropbox/ASU/SINE/Data/feeder_analysis/input_2_results.mat','n_tot','e_tot','err_tot','-v7.3')
+%% save csv results
+writetable(struct2tab_with_pad(KL),'~/Dropbox/ASU/SINE/Data/feeder_analysis/input_2_KL.csv');
+writetable(struct2tab_with_pad(T_hist),'~/Dropbox/ASU/SINE/Data/feeder_analysis/input_2_T_hist.csv');
+writetable(struct2tab_with_pad(T_fit),'~/Dropbox/ASU/SINE/Data/feeder_analysis/input_2_T_fit.csv');

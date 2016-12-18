@@ -1,4 +1,4 @@
-function [KL,T_hist,T_fit] = feeder_testing(n,e,varargin)
+function [KL,T_hist,T_fit] = feeder_testing(n,e,err,varargin)
 %% check input options
 I = find(strcmp(varargin,'fig'));
 if isempty(I)
@@ -118,3 +118,23 @@ if show_fig
 end
 [KL.x,T_hist.xv,T_hist.xcenters,T_hist.xedges,...
     T_fit.xx,T_fit.xv] = reactance_distribution(e,'fig',show_fig);
+%% plot error
+if show_fig
+    figure;
+    stem(err_tot.fid,err_tot.P)
+    xlabel('Feeder Number')
+    ylabel('P_{actual} - P_{total}')
+    set(gca,'FontSize',20)
+    
+    figure;
+    stem(err_tot.fid,err_tot.S)
+    xlabel('Feeder Number')
+    ylabel('S_{actual} - S_{total}')
+    set(gca,'FontSize',20)
+    
+    figure;
+    stem(err_tot.fid,err_tot.Pinj)
+    xlabel('Feeder Number')
+    ylabel('Pinj_{actual} - Pinj_{total}')
+    set(gca,'FontSize',20)
+end
