@@ -1,9 +1,16 @@
-function [n,e,err] = single_feeder_gen(N,Stotal,Pinj_total)
+function [n,e,err] = single_feeder_gen(N,Stotal,Pinj_total,varargin)
 % INPUTS
 %   N: number of nodes
 %   Stotal: total MVA consumption
 %   Pinj_total: total MW injection
 
+%% check in puts
+I = find(strcmp(varargin,'reverse_mitigate'));
+if isempty(I)
+    reverse_mitigate = 1;
+else 
+    reverse_mitigate = varargin{I+1};
+end
 %% Additional Inputs
 U_hv = 110;     %[kV]
 U_mv = 10;      %[kV]
@@ -220,26 +227,9 @@ for k = 2:N
     end
 end
 
-%% copy load values to downstream
-% each node has at least its own load downstream
-n.pdownstream = n.p;
-n.qdownstream = n.q;
 
 %% calculate downstream values
-for k = N:-1:2
-    % add to the predecessor node the downstream load of the current node
-    pred = n.pred(k);
-    n.pdownstream(pred) = n.pdownstream(pred) + n.pdownstream(k);
-    n.qdownstream(pred) = n.qdownstream(pred) + n.qdownstream(k);
-    
-    emask = find((e.f == pred) & (e.t == n.id(k)));
-    if length(emask) > 1
-        error('Incorrect assignment of predecessor and child')
-    else
-        e.pdownstream(emask) = n.pdownstream(k);
-        e.qdownstream(emask) = n.qdownstream(k);
-    end
-end
+[n,e] = downstream_calc(n,e);
 %% split up root node
 if n.degree(2) > 20
     nnew = ceil(n.degree(2)/20) - 1;
@@ -304,6 +294,59 @@ if n.degree(2) > 20
     end
     for f = fieldnames(e).'
         e.(f{1}) = [e.(f{1}) ; new_edges.(f{1})];
+    end
+end
+%% reverse current mitigation
+if reverse_mitigate
+    neg_count = sum(n.pdownstream < 0);
+    exit_flag = false;
+    neg_offset = 0;
+    while neg_count > 0 && ~exit_flag
+        n_candidates = n.id((n.p <0) & (n.pdownstream < 0));
+        if neg_offset >= length(n_candidates)
+            break
+        end
+        [~,I] = sort(n.pdownstream(n_candidates));
+        k = n_candidates(I(1+neg_offset));        
+        % find candidates that have greater than or equal degree or at
+        % least degree greater than 2 (unless original degree is 2)
+        swap_candidates = n.id((n.pdownstream > abs(n.p(k))) & ...
+                                (n.degree >= n.degree(k) | ...
+                                    n.degree > 2));
+        if ~isempty(swap_candidates)
+            deg_diff = abs(n.degree(swap_candidates) - n.degree(k));
+            hop_diff = abs(n.d_hop(swap_candidates) - n.d_hop(k));
+            [~,idx] = sort(deg_diff + hop_diff);
+            swap_candidates = swap_candidates(idx);
+            for s = swap_candidates.'
+                %swap the load of the two nodes
+                n = swap_node_loads(n,k,s);
+                %recalculate downstream power
+                [n,e] = downstream_calc(n,e);
+                neg_count_new = sum(n.pdownstream < 0);
+                if neg_count_new < neg_count
+                    break
+                else
+                    %swap back
+                    n = swap_node_loads(n,k,s);
+                    %recalculate downstream power
+                    [n,e] = downstream_calc(n,e);
+                end
+            end
+            if neg_count_new < neg_count
+                neg_count = neg_count_new;
+            else
+                neg_offset = neg_offset+1;
+                if neg_offset == length(n_candidates)
+                    exit_flag = true;
+                end
+            end
+        else
+            neg_offset = neg_offset+1;
+            if neg_offset == length(n_candidates)
+                exit_flag = true;
+            end
+        end
     end
 end
 %% Estimated Current

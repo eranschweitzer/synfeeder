@@ -54,3 +54,6 @@ w = sort(abs(G.Edges.Weight));
 G.Edges.LWidths = 6.75*abs(G.Edges.Weight)/max(w(end-1)) + 0.25;
 G.Edges.LWidths(G.Edges.LWidths>7) = 7.2;
 hG.LineWidth = G.Edges.LWidths;
+%% label edges and nodes
+% hG.EdgeLabel = elabel;
+% hG.NodeLabel = n.p;
