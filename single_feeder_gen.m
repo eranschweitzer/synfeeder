@@ -1,4 +1,4 @@
-function [n,e] = single_feeder_gen(N,Stotal,Pinj_total)
+function [n,e,err] = single_feeder_gen(N,Stotal,Pinj_total)
 % INPUTS
 %   N: number of nodes
 %   Stotal: total MVA consumption
@@ -143,6 +143,14 @@ n.q(n.p>0) = n.q(n.p>0)*(Ptotal/Pload);
 Pinj = -1*sum(n.p(n.p<0));
 n.p(n.p<0) = n.p(n.p<0)*(Pinj_total/Pinj);
 n.q(n.p<0) = n.q(n.p<0)*(Pinj_total/Pinj);
+%% make sure positive cap is not exceeded following normalization
+for k = 2:N
+    if n.p(k) > 0
+        if n.p(k) > pmax_f(n.d_hop(k))
+            n.p(k) = pmax_f(n.d_hop(k));
+        end
+    end
+end
 %% Assign degree
 %degree is known for source, root and furthest nodes
 n.degree_assign(1) = 1;
@@ -345,6 +353,8 @@ for k = 1:length(e.inom)
         e.x(k) = e.length(k)*cable_types.(['u' num2str(e.funom(k))]).x(e.cable_id(k));
     end
 end
+%% calculate error between inputs and output
+err = load_error_check(n,Ptotal,Stotal,Pinj_total);
 %% Determine Cable Length and total impedance for cables with i_est>0
 % for k = 1:length(e.inom)
 %     if (e.funom(k) == e.tunom(k)) && (e.i_est(k) > 0) && (e.inom(k) > 0)
