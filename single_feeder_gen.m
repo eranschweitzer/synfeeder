@@ -14,19 +14,9 @@ max_parallel = 5; %maximum allowable number of parallel cables
 %% import data
 data_import;
 %% Initalize variables
-n = struct('id',(1:N).','p',zeros(N,1),'q',zeros(N,1),'pf',zeros(N,1),...
-            'unom',zeros(N,1),...
-            'noload',false(N,1),'d_hop',zeros(N,1),...
-            'pdownstream',zeros(N,1),'qdownstream',zeros(N,1),...
-            'degree',zeros(N,1), 'degree_assign',zeros(N,1),'pred',zeros(N,1),...
-            'inom_min',inf(N,1),'inom_max',zeros(N,1));
+n = node_initialize(N);
 %initialize enough edges for a tree
-e = struct('id',(1:N-1).','f',zeros(N-1,1),'t',zeros(N-1,1),...
-            'funom',zeros(N-1,1),'tunom',zeros(N-1,1),'d_hop',zeros(N-1,1),...
-            'pdownstream',zeros(N-1,1),'qdownstream',zeros(N-1,1),...
-            'i_est',zeros(N-1,1),'inom',-1*ones(N-1,1),'rsamp',zeros(N-1,1),'overload',false(N-1,1),...
-            'num_parallel',ones(N-1,1),'cable_id',zeros(N-1,1),...
-            'length',zeros(N-1,1),'r',zeros(N-1,1),'x',zeros(N-1,1));
+e = edge_initialize(N-1);
 
 %Ptotal is the total power calculated as the total MVA times the average
 %power factor. Qtotal is not calculated since it is not needed for the
@@ -250,7 +240,72 @@ for k = N:-1:2
         e.qdownstream(emask) = n.qdownstream(k);
     end
 end
-
+%% split up root node
+if n.degree(2) > 20
+    nnew = ceil(n.degree(2)/20) - 1;
+    new_nodes = node_initialize(nnew);
+    new_edges = edge_initialize(nnew);
+    neighbors = e.t(e.f == n.id(2));
+    pdownstream_init = n.pdownstream(2);
+    for k = 1:nnew
+        for f = fieldnames(n).'
+            %copy the root node's values
+            new_nodes.(f{1}) = n.(f{1})(2);
+        end
+        %make some modifications
+        new_nodes.id(k) = max(n.id)+k;
+        new_nodes.p(k) = 0;
+        new_nodes.q(k) = 0;
+        new_nodes.pdownstream(k) = 0;
+        new_nodes.qdownstream(k) = 0;
+        new_nodes.degree(k) = 1; %connected to the source
+        
+        for f = fieldnames(e).'
+            %copy edge connection to source
+            new_edges.(f{1}) = e.(f{1})((e.f == 1) & (e.t == 2));
+        end
+        %make some modifications
+        new_edges.id(k) = max(e.id) + k;
+        new_edges.f(k) = 1;
+        new_edges.t(k) = new_nodes.id(k);
+        new_edges.pdownstream(k) = 0;
+        new_edges.qdownstream(k) = 0;
+        while new_nodes.pdownstream(k) < pdownstream_init/(nnew + 1)
+            % add to new node
+            new_nodes.pdownstream(k) = new_nodes.pdownstream(k) + ...
+                                        n.pdownstream(neighbors(1));
+            new_nodes.qdownstream(k) = new_nodes.qdownstream(k) + ...
+                                        n.qdownstream(neighbors(1));
+            % remove from old on
+            n.pdownstream(2) = n.pdownstream(2) - n.pdownstream(neighbors(1));
+            n.qdownstream(2) = n.qdownstream(2) - n.qdownstream(neighbors(1));
+            % mark change in edge and change predecessor of neighbor
+            e.f((e.f==2) & (e.t == neighbors(1))) = new_nodes.id(k);
+            n.pred(neighbors(1)) = new_nodes.id(k);
+            % increment degree of new node and decrement of old
+            new_nodes.degree(k) = new_nodes.degree(k) + 1;
+            n.degree(2) = n.degree(2) - 1;
+            %remove this neighbor from list
+            neighbors = neighbors(2:end); 
+        end
+        %update downstream power of new edge
+        new_edges.pdownstream(k) = new_nodes.pdownstream(k);
+        new_edges.qdownstream(k) = new_nodes.qdownstream(k);
+        %degree assign is silly in this case. set it to degree
+        new_nodes.degree_assign(k) = new_nodes.degree(k);
+    end
+    n.degree_assign(2) = n.degree(2);
+    %update edge between source and original root
+    e.pdownstream((e.f == 1) & (e.t == 2)) = n.pdownstream(2);
+    e.qdownstream((e.f == 1) & (e.t == 2)) = n.qdownstream(2);
+    %add new nodes and edges to the normal structures
+    for f = fieldnames(n).'
+        n.(f{1}) = [n.(f{1}) ; new_nodes.(f{1})];
+    end
+    for f = fieldnames(e).'
+        e.(f{1}) = [e.(f{1}) ; new_edges.(f{1})];
+    end
+end
 %% Estimated Current
 % i_est [A] = 1e3*s_est[MVA]/(sqrt(3)*unom [kV]) 
 % Unom always taken on "to" side
