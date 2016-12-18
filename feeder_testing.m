@@ -121,20 +121,20 @@ end
 %% plot error
 if show_fig
     figure;
-    stem(err_tot.fid,err_tot.P)
+    stem(err.fid,err.P)
     xlabel('Feeder Number')
-    ylabel('P_{actual} - P_{total}')
+    ylabel('(P_{actual} - P_{total})/P_{total}')
     set(gca,'FontSize',20)
     
     figure;
-    stem(err_tot.fid,err_tot.S)
+    stem(err.fid,err.S)
     xlabel('Feeder Number')
-    ylabel('S_{actual} - S_{total}')
+    ylabel('(S_{actual} - S_{total})/S_{total}')
     set(gca,'FontSize',20)
     
     figure;
-    stem(err_tot.fid,err_tot.Pinj)
+    stem(err.fid,err.Pinj)
     xlabel('Feeder Number')
-    ylabel('Pinj_{actual} - Pinj_{total}')
+    ylabel('(Pinj_{actual} - Pinj_{total})/Pinj_{total}')
     set(gca,'FontSize',20)
 end
