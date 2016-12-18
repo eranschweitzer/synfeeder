@@ -18,7 +18,7 @@ n = struct('id',(1:N).','p',zeros(N,1),'q',zeros(N,1),'pf',zeros(N,1),...
             'unom',zeros(N,1),...
             'noload',false(N,1),'d_hop',zeros(N,1),...
             'pdownstream',zeros(N,1),'qdownstream',zeros(N,1),...
-            'degree',zeros(N,1), 'degree_assign',zeros(N,1),...
+            'degree',zeros(N,1), 'degree_assign',zeros(N,1),'pred',zeros(N,1),...
             'inom_min',inf(N,1),'inom_max',zeros(N,1));
 %initialize enough edges for a tree
 e = struct('id',(1:N-1).','f',zeros(N-1,1),'t',zeros(N-1,1),...
@@ -60,11 +60,62 @@ while ~all(diff(distinct_hop)==1);
     n.d_hop(n.d_hop > hop_threshold) = n.d_hop(n.d_hop > hop_threshold) - 1;
     distinct_hop = unique(n.d_hop);
 end
-
 %% Assign Nominal Voltage
 n.unom(1) = U_hv;
 %for now make all nodes the same voltage
 n.unom(2:end) = U_mv;
+%% Assign degree
+%degree is known for source, root and furthest nodes
+n.degree_assign(1) = 1;
+n.degree_assign(2) = sum(n.d_hop==2) + 1;
+n.degree_assign(n.d_hop==max(n.d_hop)) = 1;
+
+for k = 3:N
+    if n.degree_assign(k)==0 %degree has not been assigned yet
+        deg_tmp = inf;
+        while deg_tmp > ceil(deg_max(2)*n.d_hop(k)^deg_max(1))
+            p = rand(1);
+            if p <= deg_dist(1)
+                deg_tmp = random('gamma',deg_dist(2),deg_dist(3));
+            else
+                deg_tmp = random('gamma',deg_dist(4),deg_dist(5));
+            end
+            %boosting degree 2 nodes
+            if abs(deg_tmp - 2) < 1
+                deg_tmp=2;
+            else
+                deg_tmp = round(deg_tmp);
+            end
+        end
+        n.degree_assign(k) = deg_tmp;
+    end
+end
+%% Sort Nodes Based on d_hop
+[~,I] = sort(n.d_hop);
+for f = fields(n).'
+   n.(f{1}) = n.(f{1})(I); 
+end
+n.id = (1:N).'; %reassign consecutie index
+%% Connect Nodes
+for k = N:-1:2
+    pred = find(n.d_hop == n.d_hop(k) - 1);
+    
+    %find the predecessor that needs the most edges to reach its assigned
+    %degree
+    [~,idx] = min(n.degree(pred) - n.degree_assign(pred));
+    
+    % update node entries
+    n.degree(k) = n.degree(k) + 1;
+    n.degree(pred(idx)) = n.degree(pred(idx)) + 1;
+    n.pred(k) = n.id(pred(idx));
+    
+    % update edge entries
+    e.f(k-1) = pred(idx);
+    e.t(k-1) = k;
+    e.d_hop(k-1) = n.d_hop(k);
+    e.funom(k-1) = n.unom(pred(idx));
+    e.tunom(k-1) = n.unom(k);
+end
 %% Determine Number of No Load Nodes
 N_noload = floor(N*random(noloadfrac_dist));
 while N_noload < 1
@@ -90,13 +141,29 @@ end
 
 %% Determine Number of nodes with injections
 if Pinj_total > 0;
-    Ninj = ceil(Pinj_dist.pd_p_neg_frac.random*N);
+    Ninj = inf;
+    while Ninj >= N-N_noload-1  %ensure there will be at least 1 load node
+        Ninj = ceil(Pinj_dist.pd_p_neg_frac.random*N);
+    end
 %% Mark injection nodes and Assign injection
     hop_max = max(n.d_hop);
-    for k = 1:Ninj
-        % select the node based on its hop distance
+    Ninj_offset = 0;
+    if rand(1) < Pinj_dist.p_neg_at_h1       
+        Ninj_offset = 1;
+        %assign an injection to root node
+        epsilon = random(Pinj_dist.pd_p_neg);
+        while 1/Ninj + epsilon < 0
+            % we are only assigning positive injection here (negative load)
+            epsilon = random(Pload_dist);
+        end
+        n.p(2) = -Pinj_total*(1/Ninj + epsilon);
+        n.q(2) = n.p(2)*tan(acos(n.pf(2)));
+    end
+    for k = 1:(Ninj - Ninj_offset)
+        % select the node based on its hop distance & degree
         idx = [];
         while isempty(idx)
+            % determine the hop distance
             p = rand(1);
             if p <= Pinj_dist.phat(1)
                 d_tmp = ceil(hop_max*(Pinj_dist.phat(2) + Pinj_dist.phat(3)*randn(1)));
@@ -106,9 +173,20 @@ if Pinj_total > 0;
             if d_tmp > hop_max
                 d_tmp = hop_max;
             end
-            %find a node at the desired hop distance that is not marked as
-            %no load and doesn't already have an injection assigned
-            idx = find((n.d_hop==d_tmp) & ~n.noload & ~(n.p<0),1);
+            % determine the node degree
+            deg_tmp = 0;
+            while deg_tmp < 1
+                deg_tmp = Pinj_dist.pd_p_neg_degree.random;
+            end
+            %find a node at the desired hop distance
+            %and doesn't already have an injection assigned
+            idx = find((n.d_hop==d_tmp) & ~n.noload & ~(n.p<0));
+            
+            if ~isempty(idx)
+               %pick the node with the most closely matching degree
+               [~,idx2] = min(abs(n.degree(idx) - deg_tmp));
+               idx = idx(idx2);
+            end
         end
         
         % assign the power injection 
@@ -151,64 +229,26 @@ for k = 2:N
         end
     end
 end
-%% Assign degree
-%degree is known for source, root and furthest nodes
-n.degree_assign(1) = 1;
-n.degree_assign(2) = sum(n.d_hop==2) + 1;
-n.degree_assign(n.d_hop==max(n.d_hop)) = 1;
 
-for k = 3:N
-    if n.degree_assign(k)==0 %degree has not been assigned yet
-        deg_tmp = inf;
-        while deg_tmp > ceil(deg_max(2)*n.d_hop(k)^deg_max(1))
-            p = rand(1);
-            if p <= deg_dist(1)
-                deg_tmp = random('gamma',deg_dist(2),deg_dist(3));
-            else
-                deg_tmp = random('gamma',deg_dist(4),deg_dist(5));
-            end
-            %boosting degree 2 nodes
-            if abs(deg_tmp - 2) < 1
-                deg_tmp=2;
-            else
-                deg_tmp = round(deg_tmp);
-            end
-        end
-        n.degree_assign(k) = deg_tmp;
-    end
-end
 %% copy load values to downstream
 % each node has at least its own load downstream
 n.pdownstream = n.p;
 n.qdownstream = n.q;
-%% Sort Nodes Based on d_hop
-[~,I] = sort(n.d_hop);
-for f = fields(n).'
-   n.(f{1}) = n.(f{1})(I); 
-end
-n.id = (1:N).'; %reassign consecutie index
-%% Connect Nodes
+
+%% calculate downstream values
 for k = N:-1:2
-    pred = find(n.d_hop == n.d_hop(k) - 1);
+    % add to the predecessor node the downstream load of the current node
+    pred = n.pred(k);
+    n.pdownstream(pred) = n.pdownstream(pred) + n.pdownstream(k);
+    n.qdownstream(pred) = n.qdownstream(pred) + n.qdownstream(k);
     
-    %find the predecessor that needs the most edges to reach its assigned
-    %degree
-    [~,idx] = min(n.degree(pred) - n.degree_assign(pred));
-    
-    % update node entries
-    n.pdownstream(pred(idx)) = n.pdownstream(pred(idx)) + n.pdownstream(k);
-    n.qdownstream(pred(idx)) = n.qdownstream(pred(idx)) + n.qdownstream(k);
-    n.degree(k) = n.degree(k) + 1;
-    n.degree(pred(idx)) = n.degree(pred(idx)) + 1;
-    
-    % update edge entries
-    e.f(k-1) = pred(idx);
-    e.t(k-1) = k;
-    e.d_hop(k-1) = n.d_hop(k);
-    e.funom(k-1) = n.unom(pred(idx));
-    e.tunom(k-1) = n.unom(k);
-    e.pdownstream(k-1) = n.pdownstream(k);
-    e.qdownstream(k-1) = n.qdownstream(k);
+    emask = find((e.f == pred) & (e.t == n.id(k)));
+    if length(emask) > 1
+        error('Incorrect assignment of predecessor and child')
+    else
+        e.pdownstream(emask) = n.pdownstream(k);
+        e.qdownstream(emask) = n.qdownstream(k);
+    end
 end
 
 %% Estimated Current

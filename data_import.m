@@ -31,6 +31,8 @@ pmax_f = @(x) pmax_coeff(1)*x.^(pmax_coeff(2)); %convenience function
 %   for the hop distance relative to the maximum hop distance where power
 %   injections occure
 % - pd_p_neg (normal): p_i/sum(p_inj) - 1/N_inj 
+% - pd_p_neg_degree (poisson): frequency of injections at a node of degree k
+% - p_neg_at_h1: fraction of feeders where the root node has an injection
 Pinj_dist = load('Power_injection_distributions.mat');
 
 %Distribution of fraction of no load nodes (Beta)
