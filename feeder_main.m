@@ -11,7 +11,7 @@ for fid = 1:size(in_vars,1)
     Stotal = in_vars.mva(fid);
     Pinj_total = in_vars.pinj(fid);
     fprintf('Processing feeder %d of %d with %d nodes\n',fid,size(in_vars,1),N)
-    [n,e,err] = single_feeder_gen(N,Stotal,Pinj_total);
+    [n,e,err] = single_feeder_gen(N,Stotal,Pinj_total,'reverse_mitigate',0);
     n.fid = fid*ones(length(n.id),1);
     e.fid = fid*ones(length(e.id),1);
     err.fid = fid;
@@ -28,8 +28,8 @@ end
 %% testing
 [KL,T_hist,T_fit] = feeder_testing(n_tot,e_tot,err_tot,'fig',1);
 %% save structures
-save('~/Dropbox/ASU/SINE/Data/feeder_analysis/input_2_results.mat','n_tot','e_tot','err_tot','-v7.3')
+save('~/Dropbox/ASU/SINE/Data/feeder_analysis/input_2_results_nomitigate.mat','n_tot','e_tot','err_tot','-v7.3')
 %% save csv results
-writetable(struct2tab_with_pad(KL),'~/Dropbox/ASU/SINE/Data/feeder_analysis/input_2_KL.csv');
-writetable(struct2tab_with_pad(T_hist),'~/Dropbox/ASU/SINE/Data/feeder_analysis/input_2_T_hist.csv');
-writetable(struct2tab_with_pad(T_fit),'~/Dropbox/ASU/SINE/Data/feeder_analysis/input_2_T_fit.csv');
+writetable(struct2tab_with_pad(KL),'~/Dropbox/ASU/SINE/Data/feeder_analysis/input_2_KL_nomitigate.csv');
+writetable(struct2tab_with_pad(T_hist),'~/Dropbox/ASU/SINE/Data/feeder_analysis/input_2_T_hist_nomitigate.csv');
+writetable(struct2tab_with_pad(T_fit),'~/Dropbox/ASU/SINE/Data/feeder_analysis/input_2_T_fit_nomitigate.csv');

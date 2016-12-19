@@ -135,12 +135,14 @@ for k = 1:N_noload-1 %minus one is for the source node
     end
     n.noload(idx) = 1;
 end
-
 %% Determine Number of nodes with injections
 if Pinj_total > 0;
     Ninj = inf;
     while Ninj >= N-N_noload-1  %ensure there will be at least 1 load node
-        Ninj = ceil(Pinj_dist.pd_p_neg_frac.random*N);
+        Ninj = round(Pinj_dist.pd_p_neg_frac.random*N);
+        if Ninj == 0
+            Ninj = 1;
+        end
     end
 %% Mark injection nodes and Assign injection
     hop_max = max(n.d_hop);
