@@ -9,6 +9,12 @@ else
     %the graph
     G = graph(e.f,e.t,e.inom);
 end
+I = find(strcmp(varargin,'label'));
+if ~isempty(I)
+    print_labels = varargin{I+1};
+else
+    print_labels = false;
+end
 %% Edge labels & Weight
 elabel = cell(size(G.Edges,1),1);
 for k = 1:length(e.t)
@@ -55,5 +61,7 @@ G.Edges.LWidths = 6.75*abs(G.Edges.Weight)/max(w(end-1)) + 0.25;
 G.Edges.LWidths(G.Edges.LWidths>7) = 7.2;
 hG.LineWidth = G.Edges.LWidths;
 %% label edges and nodes
-% hG.EdgeLabel = elabel;
-% hG.NodeLabel = n.p;
+if print_labels
+    hG.EdgeLabel = elabel;
+    hG.NodeLabel = n.p;
+end
