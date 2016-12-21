@@ -234,7 +234,7 @@ end
 [n,e] = downstream_calc(n,e);
 %% split up root node
 if n.degree(2) > 20
-    nnew = ceil(n.degree(2)/20) - 1;
+    nnew = ceil(n.degree(2)/20);% - 1;
     new_nodes = node_initialize(nnew);
     new_edges = edge_initialize(nnew);
     neighbors = e.t(e.f == n.id(2));
@@ -242,7 +242,7 @@ if n.degree(2) > 20
     for k = 1:nnew
         for f = fieldnames(n).'
             %copy the root node's values
-            new_nodes.(f{1}) = n.(f{1})(2);
+            new_nodes.(f{1})(k) = n.(f{1})(2);
         end
         %make some modifications
         new_nodes.id(k) = max(n.id)+k;
@@ -250,33 +250,37 @@ if n.degree(2) > 20
         new_nodes.q(k) = 0;
         new_nodes.pdownstream(k) = 0;
         new_nodes.qdownstream(k) = 0;
-        new_nodes.degree(k) = 1; %connected to the source
+        new_nodes.degree(k) = 1; %connected to root
+        new_nodes.d_hop(k) = 2;
+        new_nodes.pred(k) = 2;
         
         for f = fieldnames(e).'
             %copy edge connection to source
-            new_edges.(f{1}) = e.(f{1})((e.f == 1) & (e.t == 2));
+            new_edges.(f{1})(k) = e.(f{1})((e.f == 1) & (e.t == 2));
         end
         %make some modifications
         new_edges.id(k) = max(e.id) + k;
-        new_edges.f(k) = 1;
+        new_edges.f(k) = 2;
+        new_edges.funom(k) = n.unom(2);
         new_edges.t(k) = new_nodes.id(k);
+        new_edges.d_hop(k) = 2;
         new_edges.pdownstream(k) = 0;
         new_edges.qdownstream(k) = 0;
-        while new_nodes.pdownstream(k) < pdownstream_init/(nnew + 1)
+        while (new_nodes.pdownstream(k) < pdownstream_init/(nnew)) && ~isempty(neighbors)
             % add to new node
             new_nodes.pdownstream(k) = new_nodes.pdownstream(k) + ...
                                         n.pdownstream(neighbors(1));
             new_nodes.qdownstream(k) = new_nodes.qdownstream(k) + ...
                                         n.qdownstream(neighbors(1));
-            % remove from old on
-            n.pdownstream(2) = n.pdownstream(2) - n.pdownstream(neighbors(1));
-            n.qdownstream(2) = n.qdownstream(2) - n.qdownstream(neighbors(1));
+%             % remove from old on
+%             n.pdownstream(2) = n.pdownstream(2) - n.pdownstream(neighbors(1));
+%             n.qdownstream(2) = n.qdownstream(2) - n.qdownstream(neighbors(1));
             % mark change in edge and change predecessor of neighbor
             e.f((e.f==2) & (e.t == neighbors(1))) = new_nodes.id(k);
             n.pred(neighbors(1)) = new_nodes.id(k);
             % increment degree of new node and decrement of old
             new_nodes.degree(k) = new_nodes.degree(k) + 1;
-            n.degree(2) = n.degree(2) - 1;
+%             n.degree(2) = n.degree(2) - 1;
             %remove this neighbor from list
             neighbors = neighbors(2:end); 
         end
@@ -286,10 +290,15 @@ if n.degree(2) > 20
         %degree assign is silly in this case. set it to degree
         new_nodes.degree_assign(k) = new_nodes.degree(k);
     end
-    n.degree_assign(2) = n.degree(2);
+%     n.degree_assign(2) = n.degree(2);
+    n.degree(2) = nnew + 1;
+    n.degree_assign(2) = nnew + 1;
+    % adjust hop degrees
+    n.d_hop(n.d_hop > 1) = n.d_hop(n.d_hop > 1) + 1;
+    e.d_hop(e.d_hop > 1) = e.d_hop(e.d_hop > 1) + 1;
     %update edge between source and original root
-    e.pdownstream((e.f == 1) & (e.t == 2)) = n.pdownstream(2);
-    e.qdownstream((e.f == 1) & (e.t == 2)) = n.qdownstream(2);
+%     e.pdownstream((e.f == 1) & (e.t == 2)) = n.pdownstream(2);
+%     e.qdownstream((e.f == 1) & (e.t == 2)) = n.qdownstream(2);
     %add new nodes and edges to the normal structures
     for f = fieldnames(n).'
         n.(f{1}) = [n.(f{1}) ; new_nodes.(f{1})];
@@ -297,6 +306,8 @@ if n.degree(2) > 20
     for f = fieldnames(e).'
         e.(f{1}) = [e.(f{1}) ; new_edges.(f{1})];
     end
+    %recalculate downstream values just for safety
+    [n,e] = downstream_calc(n,e);
 end
 %% reverse current mitigation
 if reverse_mitigate
@@ -313,8 +324,10 @@ if reverse_mitigate
         % find candidates that have greater than or equal degree or at
         % least degree greater than 2 (unless original degree is 2)
         swap_candidates = n.id((n.pdownstream > abs(n.p(k))) & ...
-                                (n.degree >= n.degree(k) | ...
-                                    n.degree > 2));
+                                (n.degree >= n.degree(k) ) );
+        if isempty(swap_candidates)
+            swap_candidates = n.id( (n.pdownstream > abs(n.p(k))) & (n.degree > 2) );
+        end
         if ~isempty(swap_candidates)
             deg_diff = abs(n.degree(swap_candidates) - n.degree(k));
             hop_diff = abs(n.d_hop(swap_candidates) - n.d_hop(k));
