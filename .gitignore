@@ -1,2 +1,5 @@
+*__pycache__*
+CIM/testing/*
 .DS_Store
 *.*~ 
+*.xml
