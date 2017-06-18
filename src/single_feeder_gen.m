@@ -19,6 +19,7 @@ U_mv = 10;      %[kV]
 min_length = 1e-3; %[km] %minimum allowable cable length
 max_parallel = 5; %maximum allowable number of parallel cables
 %% import data
+% loads data used in the function
 data_import;
 %% Initalize variables
 n = node_initialize(N);
@@ -92,7 +93,7 @@ end
 for f = fields(n).'
    n.(f{1}) = n.(f{1})(I); 
 end
-n.id = (1:N).'; %reassign consecutie index
+n.id = (1:N).'; %reassign consecutive index
 %% Connect Nodes
 for k = N:-1:2
     pred = find(n.d_hop == n.d_hop(k) - 1);
