@@ -1,8 +1,8 @@
-#Distribution Feeder Generation
+# Distribution Feeder Generation
 
 This is a collection of code to automatically generate distribution feeders
 
-##File Structure
+## File Structure
 - `src` The main functions used to to generate the feeders. Of these the key ones are
   - `single_feeder_gen` produces a single radial feeder
   - `feeder_main` is a script to produce many feeders using an input csv file
