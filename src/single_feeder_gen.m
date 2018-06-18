@@ -4,7 +4,7 @@ function [n,e,err] = single_feeder_gen(N,Stotal,Pinj_total,varargin)
 %   Stotal: total MVA consumption
 %   Pinj_total: total MW injection
 
-%% check in puts
+%% check inputs
 I = find(strcmp(varargin,'reverse_mitigate'));
 if isempty(I)
     reverse_mitigate = 1;
@@ -507,6 +507,7 @@ for k = 1:length(e.inom)
         e.length(k) = ltmp;
         e.r(k) = e.length(k)*cable_types.(['u' num2str(e.funom(k))]).r(e.cable_id(k));
         e.x(k) = e.length(k)*cable_types.(['u' num2str(e.funom(k))]).x(e.cable_id(k));
+        e.c(k) = e.length(k)*cable_types.(['u' num2str(e.funom(k))]).c(e.cable_id(k));
     end
 end
 %% calculate error between inputs and output
