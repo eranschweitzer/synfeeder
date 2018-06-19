@@ -530,9 +530,9 @@ for k = 1:length(e.inom)
             end
         end
         e.length(k) = ltmp;
-        e.r(k) = e.length(k)*cable_types.(['u' num2str(e.funom(k))]).r(e.cable_id(k));
-        e.x(k) = e.length(k)*cable_types.(['u' num2str(e.funom(k))]).x(e.cable_id(k));
-        e.c(k) = e.length(k)*cable_types.(['u' num2str(e.funom(k))]).c(e.cable_id(k));
+        e.r(k) = e.length(k)*cable_types.(['u' num2str(e.funom(k))]).r(e.cable_id(k)); %[Ohm]
+        e.x(k) = e.length(k)*cable_types.(['u' num2str(e.funom(k))]).x(e.cable_id(k)); %[Ohm]
+        e.c(k) = e.length(k)*cable_types.(['u' num2str(e.funom(k))]).c(e.cable_id(k)); %[uF]
     end
 end
 
@@ -546,8 +546,9 @@ xfrmtest = xfrmtest + par_xfrm_penalty*ones(size(xfrmlib.snom))*(1:4); % add par
 [~,xfrmid] = min(xfrmtest(:));
 [e.cable_id(1), e.num_parallel(1)] = ind2sub(size(xfrmtest), xfrmid);
 
-% Note: we don't add the resistance and impedance here since they are not neede for calculation
-% instead these will be added as appropriate in the conversion to a calculation format.
+% IMPORTANT: The impedance of the transformer is in *per-unit* not in Ohm like the cables
+e.r(1) = xfrmlib.rpu(e.cable_id(1));
+e.x(1) = xfrmlib.xpu(e.cable_id(1));
 
 %% calculate error between inputs and output
 err = load_error_check(n,Ptotal,Stotal,Pinj_total);
