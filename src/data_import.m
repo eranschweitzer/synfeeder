@@ -6,6 +6,8 @@ pathstr = fullfile(pathstr(1:end-4),'data');
 %% load data libraries
 cable_types = load(fullfile(pathstr,'cable_types.mat'),'c');
 cable_types = cable_types.c;
+%% load distribution transformer library
+xfrmlib = readtable(fullfile(pathstr,'DistributionTransformerLibrary.csv'));
 %% import distributions
 %power factor distribution
 pf_dist = load(fullfile(pathstr,'pf_distribution.mat'),'pf_dist');

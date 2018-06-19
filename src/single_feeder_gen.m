@@ -18,6 +18,12 @@ U_mv = 10;      %[kV]
 % max_length = 20;%[km] %maximum allowable cable length
 min_length = 1e-3; %[km] %minimum allowable cable length
 max_parallel = 5; %maximum allowable number of parallel cables
+% additive penalty for using parallel trnasformers (effectively the units are MVA)
+% For example with 10, a single transformer that is 10 MVA "over-rated" will
+% be chosen instead of a parallel combination that is less.
+par_xfrm_penalty = 10; 
+%multiply transformer estimated load by this factor before sizing. 
+xfrm_buffer = 1.05; 
 %% import data
 % loads data used in the function
 data_import;
@@ -510,6 +516,20 @@ for k = 1:length(e.inom)
         e.c(k) = e.length(k)*cable_types.(['u' num2str(e.funom(k))]).c(e.cable_id(k));
     end
 end
+
+%% Assign Distribution Transfomer Parameters
+% Note that by definition this is the first entry in the edge structure
+xfrmsest = sqrt(e.pdownstream(1).^2 + e.qdownstream(1).^2); % estimated apparent power in xfrm
+xfrmopt  = xfrmlib.snom*(1:4);
+xfrmtest = xfrmopt - xfrm_buffer*xfrmsest;
+xfrmtest(xfrmtest < 0 ) = Inf; % effectively remove all undersized xfrm options
+xfrmtest = xfrmtest + par_xfrm_penalty*ones(size(xfrmlib.snom))*(1:4); % add parallel penalty
+[~,xfrmid] = min(xfrmtest(:));
+[e.cable_id(1), e.num_parallel(1)] = ind2sub(size(xfrmtest), xfrmid);
+
+% Note: we don't add the resistance and impedance here since they are not neede for calculation
+% instead these will be added as appropriate in the conversion to a calculation format.
+
 %% calculate error between inputs and output
 err = load_error_check(n,Ptotal,Stotal,Pinj_total);
 %% Determine Cable Length and total impedance for cables with i_est>0
