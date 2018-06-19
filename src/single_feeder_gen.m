@@ -547,8 +547,10 @@ xfrmtest = xfrmtest + par_xfrm_penalty*ones(size(xfrmlib.snom))*(1:4); % add par
 [e.cable_id(1), e.num_parallel(1)] = ind2sub(size(xfrmtest), xfrmid);
 
 % IMPORTANT: The impedance of the transformer is in *per-unit* not in Ohm like the cables
-e.r(1) = xfrmlib.rpu(e.cable_id(1));
-e.x(1) = xfrmlib.xpu(e.cable_id(1));
+% similarly, value in inom is NOT a current rating but rather a power rating in MVA
+e.r(1) = xfrmlib.rpu(e.cable_id(1)); % [pu]
+e.x(1) = xfrmlib.xpu(e.cable_id(1)); % [pu]
+e.inom(1) = xfrmlib.snom(e.cable_id(1)); %[MVA]
 
 %% calculate error between inputs and output
 err = load_error_check(n,Ptotal,Stotal,Pinj_total);
