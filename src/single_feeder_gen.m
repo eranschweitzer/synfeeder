@@ -37,10 +37,8 @@ U_mv = 10;      %[kV]
 % max_length = 20;%[km] %maximum allowable cable length
 min_length = 1e-3; %[km] %minimum allowable cable length
 max_parallel = 5; %maximum allowable number of parallel cables
-% additive penalty for using parallel trnasformers (effectively the units are MVA)
-% For example with 10, a single transformer that is 10 MVA "over-rated" will
-% be chosen instead of a parallel combination that is less.
-par_xfrm_penalty = 10; 
+% additive penalty for using parallel trnasformers 
+par_xfrm_penalty = 0.1; 
 %multiply transformer estimated load by this factor before sizing. 
 xfrm_buffer = 1.05; 
 %% import data
@@ -162,7 +160,7 @@ for k = 1:N_noload-1 %minus one is for the source node
     n.noload(idx) = 1;
 end
 %% Determine Number of nodes with injections
-if Pinj_total > 0;
+if Pinj_total > 0
     Ninj = inf;
     while Ninj >= N-N_noload-1  %ensure there will be at least 1 load node
         Ninj = round(Pinj_dist.pd_p_neg_frac.random*N);
@@ -539,10 +537,13 @@ end
 %% Assign Distribution Transfomer Parameters
 % Note that by definition this is the first entry in the edge structure
 xfrmsest = sqrt(e.pdownstream(1).^2 + e.qdownstream(1).^2); % estimated apparent power in xfrm
+xfrmz    = sqrt(xfrmlib.rpu.^2 + xfrmlib.xpu.^2)*[1,0.5,1/3,0.25];
+deltaV   = sqrt(xfrmsest/10*xfrmz); %IMPORTANT! Assuming 10 MVA power base
 xfrmopt  = xfrmlib.snom*(1:4);
 xfrmtest = xfrmopt - xfrm_buffer*xfrmsest;
 xfrmtest(xfrmtest < 0 ) = Inf; % effectively remove all undersized xfrm options
-xfrmtest = xfrmtest + par_xfrm_penalty*ones(size(xfrmlib.snom))*(1:4); % add parallel penalty
+xfrmtest = xfrmtest + par_xfrm_penalty*ones(size(xfrmlib.snom))*(0:3); % add parallel penalty
+xfrmtest = xfrmtest + deltaV;
 [~,xfrmid] = min(xfrmtest(:));
 [e.cable_id(1), e.num_parallel(1)] = ind2sub(size(xfrmtest), xfrmid);
 
