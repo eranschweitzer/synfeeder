@@ -1,7 +1,11 @@
-function mpc = matpower_fmt(n,e)
+function mpc = matpower_fmt(n,e,freq)
 %%% create a matpower structure representation of the feeder
 %%% described by node structure, n, and edge structure, e
 
+if nargin < 3
+    freq = 50; %[HZ]
+end
+omega = 2*pi*freq;
 baseMVA = 10; %use 10MVA base instead of 100. This is more common in distribution circuits
 
 N = length(n.id);
@@ -15,18 +19,18 @@ branch = zeros(sum(e.num_parallel),13);
 cnt = 1;
 for b = 1:M
 	for bb = 1:e.num_parallel(b)
-		if e.funom == e.tunom
+		if e.funom(b) == e.tunom(b)
 			br = e.r(b)/(e.funom(b).^2/baseMVA); %[pu] Ohm/ Zbase= Vbase^2/Sbase
 			bx = e.x(b)/(e.funom(b).^2/baseMVA); %[pu] Ohm/ Zbase= Vbase^2/Sbase
-      bc = (e.funom(b).^2/baseMVA)*b_from_c(e.c(b),omega); %[pu] uF -> S * Zbase= Vbase^2/Sbase
+            bc = (e.funom(b).^2/baseMVA)*b_from_c(e.c(b),omega); %[pu] uF -> S * Zbase= Vbase^2/Sbase
 			tap = 0;
-      rating = sqrt(3)*e.funom(b)*e.inom(b)*1e-3; %[MVA] sqrt(3)*vnom_ll*inom = snom (3 phase)
+            rating = sqrt(3)*e.funom(b)*e.inom(b)*1e-3; %[MVA] sqrt(3)*vnom_ll*inom = snom (3 phase)
 		else
 			br = e.r(b); 
 			bx = e.x(b);
 			bc = e.c(b); %this should be zero
 			tap = 1;
-      rating = e.inom(b);
+            rating = e.inom(b);
 		end
 
 		% branch matrix: F_BUS, T_BUS, BR_R, BR_X, BR_B, RATE_A, RATE_B, RATE_C, TAP, SHIFT, BR_STATUS, ANGMIN, ANGMAX
