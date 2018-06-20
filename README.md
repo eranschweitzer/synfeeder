@@ -41,6 +41,10 @@ Structures `n` and `e` can be converted to a [MATPOWER][2] case, `mpc`, using th
 ```
 The third argument, `freq`, is the nominal system frequency, which is needed to convert the line capacitance from &mu;F to per-unit susceptance.
 If it is not provided 50 Hz is used, since this was the default frequency in the system the data came from.
+The feeder powerflow can then be easily solved (assuming MATPOWER is installed):
+```matlab
+  >> r = runpf(mpc);
+```
 
 The created feeders are radial, which can occasionally cause convergence problems with the normal Newton-Raphson algorithm.
 Matpower comes with a few radial algorithms specifically for these situations.
@@ -52,11 +56,11 @@ To use the current summation method, for example use:
 ```
 From experience we recommend increasing the iteration number to greater than the default 20.
 
-While the algorithm produces radial systems, occassionally parallel elements are produced.
-To check if any radial elements exists try `any(e.num_parallel > 1)`.
-The utility function `parallel_branch_join()` is provided to combine parallel branches and allow for the radial algorithms to be used.
+While the algorithm produces radial systems, parallel elements can be produced.
+To check if any parallel elements exists try `any(e.num_parallel > 1)`.
+The utility function `parallel_branch_join()` is provided to combine parallel branches to enable use of the radial algorithms.
 
-A simple set of commands to create and solve a feeder is:
+A simple set of commands to create and solve a feeder using a radial powerflow is:
 ```matlab
   >> [n,e] = single_feeder_gen();
   >> mpc = matpower_fmt(n,e);
