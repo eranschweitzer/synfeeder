@@ -7,21 +7,7 @@ function [n,e,err] = single_feeder_gen(N,Stotal,Pinj_total,varargin)
 %% check inputs
 use_pinj = false;
 if nargin < 3
-	% load input kde object and sample
-	load('../data/inputkde.mat','inputkde');
-	while true
-		tmp = round(inputkde.resample(1));
-		N = tmp(1); Stotal = tmp(2); 
-		if use_pinj
-			Pinj_total = tmp(3);
-		else
-			Pinj_total = 0;
-		end
-		if (N > 5) && (Stotal > 0) && (Pinj_total <= 0) && (abs(Stotal) > abs(Pinj_total))
-			Pinj_total = abs(Pinj_total);
-			break
-		end
-	end	
+	[N, Stotal, Pinj_total] = inputs_sample(1, use_pinj);
 end
 
 I = find(strcmp(varargin,'reverse_mitigate'));
