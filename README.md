@@ -22,9 +22,17 @@ The basic functionality creates two Matlab structures, `n` and `e`, with informa
 ```matlab
   >> [n,e] = single_feeder_gen(N, Stotal, Pinj_total);
 ```
-If no inputs are passed, as above, a KDE based on the data is used to sample inputs. 
+If no inputs are passed a KDE based on the data is used to sample inputs. 
+The function `inputs_sample()` is provided as a convinience to generate samples.
+```matlab
+  >> [N, Stotal, Pinj_total] = inputs_sample(n, use_pinj);
+```
+Here `n` is the number of desired samples.
+Boolean `use_pinj` determines whether injections should be considered, if it is `false` then `Pinj_total = 0` always.
 
-*Note:* Since `Pinj_total` is a fixed net injection (rather than a combination of load and generation) it is not particularly flexible. As such we do not necessarily advise using it. In the case where `single_feeder_gen()` is called with no arguments, `Pinj_total` is set to zero.
+*Note:* Since `Pinj_total` is a fixed net injection (rather than a combination of load and generation) it is not particularly flexible. 
+As such we do not necessarily advise using it. 
+In the case where `single_feeder_gen()` is called with no arguments, `Pinj_total` is set to zero.
 
 ### Matpower Format
 Structures `n` and `e` can be converted to a [MATPOWER][2] case, `mpc`, using the `matpower_fmt()` function:
