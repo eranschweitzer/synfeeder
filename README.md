@@ -46,7 +46,7 @@ The feeder powerflow can then be easily solved (assuming MATPOWER is installed):
   >> r = runpf(mpc);
 ```
 
-The created feeders are radial, which can occasionally cause convergence problems with the normal Newton-Raphson algorithm.
+The created feeders are radial, which occasionally might cause convergence problems with the normal Newton-Raphson algorithm (so far solutions appear to be stable).
 Matpower comes with a few radial algorithms specifically for these situations.
 To use the current summation method, for example use:
 ```matlab
@@ -71,12 +71,13 @@ A simple set of commands to create and solve a feeder using a radial powerflow i
 There is (as of yet) no user manual. Instead the [FEN-report][3] in `docs` as well as reference [\[1\]][1] provide a fairly detailed overivew of the work.
 
 ## Known Issues
-- The distribution transformer is the main culprit in terms of voltage drop.
-The current selection algorithm attempts to mitigate this but is not always successful and as a result the powerflow may fail to converge.
-There are two quick ways to address this:
-  1. **Tap Setting** Reducing the tap setting from 1 to 0.98 or so will help raise the voltage on the low voltage side.
-  2. **Reactive Support** Adding a shunt reactance to support the voltage at the low-voltage bus can help raise the voltage
-For example, take a look at `e.qdownstream(1)` which is roughly the reactive power in the transformer in MVAr, and add a fraction of this to `mpc.bus(2,BS)`.
+- The distribution transformer in real systems generally has taps and varies these taps to get the load on the feeder to a desired point.
+Currently the tap entry in the `branch` matrix is determined based on the ratio between the system voltages (HV=110 kV, MV=10 kV) and the nominal voltages of the transformer.
+The voltage behavior over the transfomer is the least predictable in the output.
+Eventually, there should probably be a step to come up with good settings but currently there are two quick ways to play with the set point: 
+  1. **Tap Setting** Reducing the tap setting from 1 to 0.98 or so will help raise the voltage on the low voltage side. Conversely, increasing the tap from 0.92 to 0.94 will lower the low voltage terminal.
+  2. **Reactive Support** Adding a shunt reactance to support the voltage at the low-voltage bus can help raise or lower the voltage.
+For example, take a look at `e.qdownstream(1)` which is roughly the reactive power in the transformer in MVAr, and add a fraction of this to `mpc.bus(2,BS)` if trying to rais the low voltage terminal.
 
 ## To Do
 - Options argument to change some of the defaults in the `single_feeder_gen` function.
