@@ -26,10 +26,11 @@ for b = 1:M
 			tap = 0;
             rating = sqrt(3)*e.funom(b)*e.inom(b)*1e-3; %[MVA] sqrt(3)*vnom_ll*inom = snom (3 phase)
 		else
-			br = e.r(b); 
-			bx = e.x(b);
+			br = e.r(b)*(baseMVA/e.inom(b)); % convert to system pu 
+			bx = e.x(b)*(baseMVA/e.inom(b)); % convert to system pu
 			bc = e.c(b); %this should be zero
-			tap = 1;
+			% off-nominal tap is ratio of transformer hv rating and system voltage
+			tap = (e.funom(b)/n.unom(e.f(b)))/(e.tunom(b)/n.unom(e.t(b))) ; 
             rating = e.inom(b);
 		end
 
@@ -41,6 +42,6 @@ for b = 1:M
 end
 	  %GEN_BUS, PG, QG, QMAX, QMIN, VG, MBASE, GEN_STATUS, PMAX, PMIN
       %PC1, PC2, QC1MIN, QC1MAX, QC2MIN, QC2MAX, RAMP_AGC, RAMP_10, RAMP_30, RAMP_Q, APF
-gen = [1, sum(n.p), sum(n.q), 10*sum(n.q), -10*(sum(n.q)), 1.05, baseMVA, 1, 10*sum(n.p), 0, zeros(1,11)];
+gen = [1, sum(n.p), sum(n.q), 10*sum(n.q), -10*(sum(n.q)), 1.0, baseMVA, 1, 10*sum(n.p), 0, zeros(1,11)];
 
 mpc = struct('baseMVA', baseMVA, 'bus', bus, 'branch', branch, 'gen', gen);
