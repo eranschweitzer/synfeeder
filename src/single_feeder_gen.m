@@ -24,7 +24,7 @@ U_mv = 10;      %[kV]
 min_length = 1e-3; %[km] %minimum allowable cable length
 max_parallel = 5; %maximum allowable number of parallel cables
 % additive penalty for using parallel trnasformers 
-par_xfrm_penalty = 0.1; 
+par_xfrm_penalty = 0.5; 
 %multiply transformer estimated load by this factor before sizing. 
 xfrm_buffer = 1.05; 
 %% import data
@@ -522,22 +522,57 @@ end
 
 %% Assign Distribution Transfomer Parameters
 % Note that by definition this is the first entry in the edge structure
-xfrmsest = sqrt(e.pdownstream(1).^2 + e.qdownstream(1).^2); % estimated apparent power in xfrm
-xfrmz    = sqrt(xfrmlib.rpu.^2 + xfrmlib.xpu.^2)*[1,0.5,1/3,0.25];
-deltaV   = sqrt(xfrmsest/10*xfrmz); %IMPORTANT! Assuming 10 MVA power base
-xfrmopt  = xfrmlib.snom*(1:4);
+% estimated apparent power in xfrm converted per unit using 10 MVA base
+xfrmsest = sqrt(e.pdownstream(1).^2 + e.qdownstream(1).^2)/10; 
+xfrmIest = xfrmsest/sqrt(3); %Assuming nominal voltage
+% z [pu] = z [ohm] * (Sbase [MVA] / Ubase^2_LL [kV]), therefore
+% z_new [pu] = z_old [pu] * (Sbase_new/Sbase_old) * (Ubase_old/ Ubase_new)^2
+% Transformer impedance in per unit on the transformer power base is
+% 	zpu_xfrmbase = sqrt( rpu^2 + xpu^2)
+% To convert  to the system base (assumed 10 MVA) multiply by sbase_new/sbase_old
+%   zpu = zpu_xfrmbase*(sysbase/snom)
+% Following Tleis "Power System modelling and fault analysis" p.205-209
+% The lv per unit tap 
+%		tlv = xfmr lv rating/lv base
+% the hv per unit tap
+%   thv = xfrm hv rating/hv base
+% Assumming a model where the impedance is on the to (lv) side of the transformer
+% we modify the impedance by the square of the off-nominal lv tap setting treating it as a fixed
+% off-nominal tap (similar to reflecting the impedance to the other side of an ideal transformer 
+% or performing a per-unit conversion between voltage bases):
+%   zpu [lv base] = zpu * tlv^2 = zpu * (xfrm lv base/ lv base)^2 
+% Finally a tap is calculated as
+%		tap = thv/tlv
+% the current in the transformer branch is roughly
+% 	Ibr = (Sest/sys s base)/lv nom
+% the voltage drop in the branch is therefore:
+% Vh/tap - Vl = Ibr*zpu
+% The assumption in the off-nominal tap calculation is that Vh=1
+% --> Vl = 1/tap - Ibr*zpu
+% deltaV = 1 - Vl = 1 - 1/tap + Ibr*zpu
+tlv      = xfrmlib.unom2./U_mv;
+thv      = xfrmlib.unom1./U_hv;
+tap      = thv./tlv;
+xfrmz    = sqrt(xfrmlib.rpu.^2 + xfrmlib.xpu.^2).*(10./xfrmlib.snom).*tlv.^2*[1,0.5,1/3,0.25];
+deltaV   = 1 - 1./repmat(tap,1, size(xfrmz,2)) + xfrmz*xfrmIest;
+xfrmopt  = xfrmlib.snom*(1:4)/10; % transformer configuration ratings in per-unit on 10MVA base
 xfrmtest = xfrmopt - xfrm_buffer*xfrmsest;
 xfrmtest(xfrmtest < 0 ) = Inf; % effectively remove all undersized xfrm options
 xfrmtest = xfrmtest + par_xfrm_penalty*ones(size(xfrmlib.snom))*(0:3); % add parallel penalty
-xfrmtest = xfrmtest + deltaV;
+xfrmtest = xfrmtest + abs(deltaV);
 [~,xfrmid] = min(xfrmtest(:));
 [e.cable_id(1), e.num_parallel(1)] = ind2sub(size(xfrmtest), xfrmid);
 
-% IMPORTANT: The impedance of the transformer is in *per-unit* not in Ohm like the cables
-% similarly, value in inom is NOT a current rating but rather a power rating in MVA
-e.r(1) = xfrmlib.rpu(e.cable_id(1)); % [pu]
-e.x(1) = xfrmlib.xpu(e.cable_id(1)); % [pu]
-e.inom(1) = xfrmlib.snom(e.cable_id(1)); %[MVA]
+% IMPORTANT: The impedance of the transformer is in *per-unit* (in transformer base,
+% refered to lv side with possible fixed-offnominal tap setting) 
+% not in Ohm like the cables.
+% Similarly, value in inom is NOT a current rating but rather a power rating in MVA
+xfrmidx = e.cable_id(1);
+e.r(1) = xfrmlib.rpu(xfrmidx)*tlv(xfrmidx)^2; % [pu]
+e.x(1) = xfrmlib.xpu(xfrmidx)*tlv(xfrmidx)^2; % [pu]
+e.inom(1) = xfrmlib.snom(xfrmidx); %[MVA]
+e.funom(1) = xfrmlib.unom1(xfrmidx); %[kV] rating of hv transformer winding
+e.tunom(1) = xfrmlib.unom2(xfrmidx); %[kV] rating of lv transformer winding
 
 %% calculate error between inputs and output
 err = load_error_check(n,Ptotal,Stotal,Pinj_total);
