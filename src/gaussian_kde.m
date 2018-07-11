@@ -7,6 +7,8 @@ classdef gaussian_kde < handle
 		n          % number of samples in data
 		factor     % factor multipying the covariance matrix determined by bw_method
 		covariance % covariance matrix of dataset scaled by factor
+        invcov     % inverse of the covariance matrix
+        norm_factor% normalization factor of all individual exponentials
 	end
 	methods
 		function self = gaussian_kde(dataset, varargin)
@@ -27,6 +29,8 @@ classdef gaussian_kde < handle
 					error('bw_method should be ''scott'', ''silverman'', or a scalar')
 				end
 				self.covariance = cov(self.dataset)*self.factor^2;
+                self.invcov = inv(cov(self.dataset))/self.factor^2;
+                self.norm_factor = sqrt(det(2*pi*self.covariance))*self.n;
 		end
 		function z = resample(self, n)
 			sigma = mult_randn(n, self.covariance);
@@ -38,7 +42,7 @@ classdef gaussian_kde < handle
 		function z = single_sample(self, actual_vals, subset)
 			if nargin == 1
 				actual_vals = false;
-			elseif nargin == 2;
+			elseif nargin == 2
 				subset = 'all';
 			end
 			if actual_vals
@@ -51,6 +55,34 @@ classdef gaussian_kde < handle
 			else
 				z = self.resample(1);
 			end
-		end
+        end
+        
+        function result = evaluate(self, points)
+            %%% evaluate the kde at each of the points given.
+            [m, d] = size(points); %#ok<PROPLC>
+            if d ~= self.d %#ok<PROPLC>
+                error('gaussian_kde/evaluate: points array must have as many columns as the kde dimensions')
+            end
+            
+            result = zeros(m, 1);
+            if m >= self.n
+                % more points than data, loop over data
+                for k = 1:self.n
+                    df = repmat(self.dataset(k,:), m, 1) - points;
+                    tdiff  = self.invcov*df.';
+                    energy = sum(df'.*tdiff, 1).'/2;
+                    result = result + exp(-energy);
+                end
+            else
+                % loop over points
+                for k = 1:m
+                    df = self.dataset - repmat(points(k,:), self.n, 1);
+                    tdiff = self.invcov*df.';
+                    energy = sum(df'.*tdiff, 1).'/2;
+                    result(k) = sum(exp(-energy), 1);
+                end
+            end
+            result = result/self.norm_factor;
+        end
 	end
 end
