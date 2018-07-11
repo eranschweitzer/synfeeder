@@ -7,9 +7,8 @@ As a result, at present all models are assumed balanced three phase, and undergr
 Please cite [\[1\]][1] when using this tool.
 
 ## File Structure
-- `src` The main functions used to to generate the feeders. Of these the key ones are
+- `src` The main functions used to to generate the feeders. Of these the key one is:
   - `single_feeder_gen` produces a single radial feeder
-  - `feeder_main` is a script to produce many feeders using an input csv file
 - `data` contains various distributions, limiting functions, libraries and similar data needed by the algorithm
 - `CIM` contains some preliminary code to convert csv output of feeders to CIM documents
 - `docs` contatins documentation
@@ -20,9 +19,15 @@ Simply add the `src` folder to your Matlab path.
 ## Usage
 The basic functionality creates two Matlab structures, `n` and `e`, with information about the nodes and buses of the system.
 ```matlab
-  >> [n,e] = single_feeder_gen(N, Stotal, Pinj_total);
+  >> [n,e] = single_feeder_gen(N, Stotal, Pinj_total, opt);
 ```
-If no inputs are passed a KDE based on the data is used to sample inputs. 
+The inputs are:
+- `N` Number of nodes on the feeder
+- `Stotal` Total MVA load.
+- `Pinj_total` Total MW of *injection*.
+- `opt` Structure of options to the algorithm.
+
+If no inputs are passed, or only the `opt` argument is passed, a KDE based on the data is used to sample inputs. 
 The function `inputs_sample()` is provided as a convinience to generate samples.
 ```matlab
   >> [N, Stotal, Pinj_total] = inputs_sample(n, use_pinj);
@@ -30,9 +35,15 @@ The function `inputs_sample()` is provided as a convinience to generate samples.
 Here `n` is the number of desired samples.
 Boolean `use_pinj` determines whether injections should be considered, if it is `false` then `Pinj_total = 0` always.
 
+It is also possible to specify just the number of desired nodes:
+```matlab
+  >> [n,e] = single_feeder_gen(N, opt);
+```
+In this case, `Stotal` and `Pinj_total` are sampled from the KDE conditioned on the specified `N` using function `ncond_sample()`.
+
 *Note:* Since `Pinj_total` is a fixed net injection (rather than a combination of load and generation) it is not particularly flexible. 
 As such we do not necessarily advise using it. 
-In the case where `single_feeder_gen()` is called with no arguments, `Pinj_total` is set to zero.
+In instances where `Pinj_total` is obtained by sampling a KDE the default behavior is that it is set to zero.
 
 ### Matpower Format
 Structures `n` and `e` can be converted to a [MATPOWER][2] case, `mpc`, using the `matpower_fmt()` function:
@@ -77,12 +88,12 @@ The voltage behavior over the transfomer is the least predictable in the output.
 Eventually, there should probably be a step to come up with good settings but currently there are two quick ways to play with the set point: 
   1. **Tap Setting** Reducing the tap setting from 1 to 0.98 or so will help raise the voltage on the low voltage side. Conversely, increasing the tap from 0.92 to 0.94 will lower the low voltage terminal.
   2. **Reactive Support** Adding a shunt reactance to support the voltage at the low-voltage bus can help raise or lower the voltage.
-For example, take a look at `e.qdownstream(1)` which is roughly the reactive power in the transformer in MVAr, and add a fraction of this to `mpc.bus(2,BS)` if trying to rais the low voltage terminal.
+For example, take a look at `e.qdownstream(1)` which is roughly the reactive power in the transformer in MVAr, and add a fraction of this to `mpc.bus(2,BS)` if trying to raise the low voltage terminal.
 
 ## To Do
-- Options argument to change some of the defaults in the `single_feeder_gen` function.
 - Better interface to the various distributions so that new ones, possibly even non-parametric, can be used in the future.
 - Handle tap and reactive support options automatically, or as an option.
+  - Nominal tap settings are handled automatically, but there is still much room for improvement.
 - Add a module that connects multiple feeders with normally-open branches (partially started, see [FEN-report][3]).
 - Time-series modeling.
 - Translation to more modeling languages such as GridLAB-D (started already) and OpenDSS.
