@@ -1,21 +1,63 @@
-function [n,e,err] = single_feeder_gen(N,Stotal,Pinj_total,varargin)
+function [n,e,err] = single_feeder_gen(N, Stotal, Pinj_total, opt)
+%%% [n, e, err] = single_feeder_gen()
+%%% [n, e, err] = single_feeder_gen(opt)
+%%% [n, e, err] = single_feeder_gen(N)
+%%% [n, e, err] = single_feeder_gen(N, opt)
+%%% [n, e, err] = single_feeder_gen(N, Stotal, Pinj_total)
+%%% [n, e, err] = single_feeder_gen(N, Stotal, Pinj_total, opt)
 % INPUTS
 %   N: number of nodes
 %   Stotal: total MVA consumption
 %   Pinj_total: total MW injection
 
 %% check inputs
-use_pinj = false;
-if nargin < 3
-	[N, Stotal, Pinj_total] = inputs_sample(1, use_pinj);
+switch nargin
+    case 0
+        opt = optdefault();
+        [N, Stotal, Pinj_total] = inputs_sample(1, opt.use_pinj);
+    case 1
+        if isstruct(N)
+            opt = optdefault(N);
+            [N, Stotal, Pinj_total] = inputs_sample(1, opt.use_pinj);
+        elseif isscalar(N)
+            opt = optdefault();
+            [Stotal, Pinj_total] = ncond_sample(N, loadinputkde(), opt.sampdelta);
+            if opt.use_pinj
+                Pinj_total = abs(Pinj_total);
+            else
+                Pinj_total = 0;
+            end
+        else
+            error('single_feeder_gen: with 1 argument, argument must either be the scalar N or the options structure opt')
+        end
+    case 2
+        if ~isscalar(N)
+            error('single_feeder_gen: with 2 arguments, argument 1 must be scalar N.')
+        end
+        if ~isstruct(Stotal)
+            error('single_feeder_gen: with 2 arguments, argument 2 must be structure opt.')
+        end
+        opt = optdefault(Stotal);
+        [Stotal, Pinj_total] = ncond_sample(N, loadinputkde(), opt.sampdelta);
+        if opt.use_pinj
+            Pinj_total = abs(Pinj_total);
+        else
+            Pinj_total = 0;
+        end
+    case 3
+        if ~(isscalar(N) && isscalar(Stotal) && isscalar(Pinj_total))
+            error('single_feeder_gen: with 3 arguments, all must be scalars N, Stotal, Pinj_total.')
+        end
+        opt = optdefault();
+    case 4
+        if ~(isscalar(N) && isscalar(Stotal) && isscalar(Pinj_total) & isstruct(opt))
+            error('single_feeder_gen: with 4 arguments. first 3 must be scalars N, Stotal, and Pinj_total, and 4th structure opt.')
+        end
+        opt = optdefault(opt);
+    otherwise
+        error('single_feeder_gen: single_feeder_gen accepts only 0, 1, 2, 3, or 4 arguments')
 end
 
-I = find(strcmp(varargin,'reverse_mitigate'));
-if isempty(I)
-    reverse_mitigate = 1;
-else 
-    reverse_mitigate = varargin{I+1};
-end
 %% Additional Inputs
 U_hv = 110;     %[kV]
 U_mv = 10;      %[kV]
@@ -320,7 +362,7 @@ if n.degree(2) > 20
     [n,e] = downstream_calc(n,e);
 end
 %% reverse current mitigation
-if reverse_mitigate
+if opt.reverse_mitigate
     neg_count = sum(n.pdownstream < 0);
     exit_flag = false;
     neg_offset = 0;
@@ -599,3 +641,27 @@ err = load_error_check(n,Ptotal,Stotal,Pinj_total);
 %         e.x(k) = e.length(k)*cable_types.(['u' num2str(e.funom(k))]).x(e.cable_id(k));
 %     end
 % end
+%% functions
+function opt = optdefault(opt)
+if nargin < 1
+    opt = [];
+end
+optdefault = struct('reverse_mitigate', 1, 'use_pinj', 0, 'sampdelta', [0.1, 0.25]);
+if ~isempty(opt)
+	opt = struct_compare(optdefault, opt);
+else
+	opt = optdefault;
+end
+
+function b = struct_compare(a, b)
+% compares structure b to structure a.
+% if b lacks a field in a it is added
+% this is performed recursively, so if if a.x is a structure
+% and b has field x, the the function is called on (a.x, b.x)
+for f = fieldnames(a).'
+	if ~isfield(b, f{:})
+		b.(f{:}) = a.(f{:});
+	elseif isstruct(a.(f{:}))
+		b.(f{:}) = struct_compare(a.(f{:}), b.(f{:}));
+	end
+end
