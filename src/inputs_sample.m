@@ -8,15 +8,7 @@ function [N, Stotal, Pinj_total] = inputs_sample(n, use_pinj)
 %%% if use_pinj is set to false then Pinj_total will be forced to zero
 %%% for all samples.
 
-%% get path 
-% first to the data_import script then back out of `src` 
-% to the data folder
-pathstr = fileparts(which('data_import'));
-pathstr = fullfile(pathstr(1:end-4),'data');
-
-%% load input kde object and sample
-load(fullfile(pathstr,'inputkde.mat'),'inputkde');
-
+inputkde = loadinputkde();
 %% sample
 s = zeros(n,3);
 ptr = 0;
