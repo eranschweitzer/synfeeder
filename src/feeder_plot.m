@@ -17,6 +17,9 @@ else
 end
 %% Edge labels & Weight
 elabel = cell(size(G.Edges,1),1);
+if isfield(e, 'phasing')
+    lstyle = repmat({'-'}, length(e.id),1);
+end
 for k = 1:length(e.t)
     eidx = findedge(G,e.f(k),e.t(k));
 %     str = sprintf('%d x %d',e.inom(k),e.num_parallel(k));
@@ -24,6 +27,17 @@ for k = 1:length(e.t)
 %     str = sprintf('%0.3f',e.length(k));
     elabel{eidx} = str;
     G.Edges.Weight(eidx) = e.pdownstream(k);
+    
+    if isfield(e, 'phasing')
+        switch e.phasing{k}
+            case 'A'
+                lstyle{eidx} = '--';
+            case 'B'
+                lstyle{eidx} = ':';
+            case 'C'
+                lstyle{eidx} = '-.';
+        end
+    end
 end
 %% plot Graph
 % plot(G,'layout','layered','source',1,...
@@ -60,6 +74,12 @@ w = sort(abs(G.Edges.Weight));
 G.Edges.LWidths = 6.75*abs(G.Edges.Weight)/max(w(end-1)) + 0.25;
 G.Edges.LWidths(G.Edges.LWidths>7) = 7.2;
 hG.LineWidth = G.Edges.LWidths;
+
+%% phasing
+if isfield(e, 'phasing')
+    hG.LineStyle = lstyle;
+end
+
 %% label edges and nodes
 if print_labels
     hG.EdgeLabel = elabel;
