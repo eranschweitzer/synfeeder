@@ -93,7 +93,7 @@ end
 %% -------- local functions ----------
 function f = ph3sample()
 %%% returns a fraction of 3 phase lines
-f = 0.40 + (0.75-0.40)*rand(); %uniform for now
+f = 0.25 + (0.75-0.25)*rand(); %uniform for now
 
 function bool = check_connected(A)
 %%% check whether the subgraph defined by edges in vector v is connected
@@ -193,7 +193,9 @@ for field = {'ua','ub', 'uc'}
 end
 
 prob.modelsense = 'min';
-result = gurobi(prob);
+
+params = struct('MIPGap', 0.01, 'MIPGapAbs', 0.001);
+result = gurobi(prob,params);
 
 if strcmp(result.status, 'OPTIMAL')
     u.A = find(result.x(vars.ua(1):vars.ua(2)) > 0.5);
