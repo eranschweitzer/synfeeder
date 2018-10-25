@@ -26,6 +26,7 @@ for b = 1:M
 			tap = 0;
             rating = sqrt(3)*e.funom(b)*e.inom(b)*1e-3; %[MVA] sqrt(3)*vnom_ll*inom = snom (3 phase)
 		else
+			% note: for transformers inom actually contatins the transformer base MVA
 			br = e.r(b)*(baseMVA/e.inom(b)); % convert to system pu 
 			bx = e.x(b)*(baseMVA/e.inom(b)); % convert to system pu
 			bc = e.c(b); %this should be zero
